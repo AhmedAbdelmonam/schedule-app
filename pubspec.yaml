@@ -1,12 +1,15 @@
 name: schedule_app
-description: Weekly schedule with prayer-time anchors and overlap rejection.
+description: Weekly schedule with prayer anchors, adhan, stats.
 publish_to: 'none'
-version: 1.0.0+1
+version: 2.0.0+2
 environment:
   sdk: '>=3.0.0 <4.0.0'
 dependencies:
   flutter:
     sdk: flutter
   shared_preferences: ^2.2.0
+  flutter_local_notifications: ^18.0.1
+  timezone: ^0.9.4
+  home_widget: ^0.6.0
 flutter:
   uses-material-design: true
