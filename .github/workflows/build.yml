@@ -11,18 +11,50 @@ jobs:
         with: { channel: stable }
       - run: flutter create --platforms=android --project-name schedule_app --org com.ahmed.schedule .
       - run: python3 patch.py
-      - name: fixed signing key
+      - name: signing and adhan
         run: |
           mkdir -p ~/.android
           if [ -f debug.keystore ]; then cp debug.keystore ~/.android/debug.keystore; fi
-      - name: adhan sound
-        run: |
           if [ -f sounds/adhan.mp3 ]; then
             mkdir -p android/app/src/main/res/raw
             cp sounds/adhan.mp3 android/app/src/main/res/raw/adhan.mp3
             echo "const hasAdhan = true;" > lib/adhan_flag.dart
           fi
       - run: flutter pub get
-      - run: flutter build apk --release
+      - name: build three variants
+        run: |
+          mkdir -p out
+          b() {
+            for i in 1 2 3 4; do
+              flutter build apk --release --no-shrink && cp build/app/outputs/flutter-apk/app-release.apk out/$1.apk && return 0
+              sleep $((i * 45))
+            done
+            return 1
+          }
+          b A-full
+          sed -i '/home_widget/d' pubspec.yaml
+          printf "Future<void> pushWidget(Object ts) async {}\n" > lib/widget.dart
+          rm -f android/app/src/main/kotlin/com/ahmed/schedule/schedule_app/ScheduleWidget.kt
+          python3 - <<'PY'
+          import re
+          m='android/app/src/main/AndroidManifest.xml'
+          t=open(m,encoding='utf-8').read()
+          t=re.sub(r'<receiver android:name="[^"]*ScheduleWidget".*?</receiver>','',t,flags=re.S)
+          open(m,'w',encoding='utf-8').write(t)
+          PY
+          flutter pub get
+          b B-no-widget
+          sed -i '/flutter_local_notifications/d;/timezone/d' pubspec.yaml
+          printf "Future<void> initNotif() async {}\nFuture<void> reschedule(Object ts, bool a) async {}\n" > lib/notif.dart
+          python3 - <<'PY'
+          import re
+          m='android/app/src/main/AndroidManifest.xml'
+          t=open(m,encoding='utf-8').read()
+          t=re.sub(r'<receiver android:exported="false" android:name="com.dexterous[^>]*/>','',t)
+          t=re.sub(r'<receiver android:exported="false" android:name="com.dexterous.*?</receiver>','',t,flags=re.S)
+          open(m,'w',encoding='utf-8').write(t)
+          PY
+          flutter pub get
+          b C-bare
       - uses: actions/upload-artifact@v4
-        with: { name: schedule-apk, path: build/app/outputs/flutter-apk/app-release.apk }
+        with: { name: schedule-apks, path: out/*.apk }
