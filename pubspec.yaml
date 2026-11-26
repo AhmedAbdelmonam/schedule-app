@@ -10,6 +10,5 @@ dependencies:
   shared_preferences: ^2.2.0
   flutter_local_notifications: ^18.0.1
   timezone: ^0.9.4
-  home_widget: ^0.6.0
 flutter:
   uses-material-design: true
