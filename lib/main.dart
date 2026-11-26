@@ -204,7 +204,7 @@ class _HomeState extends State<Home> {
       if (cf.isNotEmpty)
         Card(color: const Color(0xFFFBE9E7), child: ListTile(
             leading: const Icon(Icons.warning_amber, color: Color(0xFF8A2418)),
-            title: Text('تعارض في ${cf.length} موضع بعد تغير المواقيت', style: const TextStyle(color: Color(0xFF8A2418), fontSize: 13)),
+            title: Text('تنبيه: تعارض في ${cf.length} موضع — اضغط للمراجعة', style: const TextStyle(color: Color(0xFF8A2418), fontSize: 13)),
             onTap: () => showDialog(context: context, builder: (_) => AlertDialog(title: const Text('تحتاج مراجعة'), content: SingleChildScrollView(child: Text(cf.join('\n'))))))),
       if (isToday)
         Container(
@@ -358,6 +358,7 @@ class _TaskDialogState extends State<TaskDialog> {
   int bi = 0;
   String mode = '';
   int? sugg;
+  String? warned;
 
   @override
   void initState() {
@@ -407,7 +408,7 @@ class _TaskDialogState extends State<TaskDialog> {
             for (var i = 0; i < 7; i++) FilterChip(label: Text(dayShort[i]), selected: days.contains(i), onSelected: (s) => setState(() => s ? days.add(i) : days.remove(i))),
           ]),
           if (error != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(error!, style: const TextStyle(color: Colors.red))),
-          if (sugg != null) OutlinedButton(onPressed: () => setState(() { off.text = '$sugg'; error = null; sugg = null; }), child: const Text('تطبيق أقرب وقت متاح')),
+          if (sugg != null) OutlinedButton(onPressed: () => setState(() { off.text = '$sugg'; error = null; sugg = null; warned = null; }), child: const Text('تطبيق أقرب وقت متاح')),
         ])),
         actions: [
           if (widget.old != null) TextButton(onPressed: () => Navigator.pop(context, Task(widget.old!.id, '\u0000', [], null, 0, 0)), child: const Text('حذف')),
@@ -415,14 +416,23 @@ class _TaskDialogState extends State<TaskDialog> {
           FilledButton(
               onPressed: () {
                 final t = _build();
+                final bad = invalid(t);
+                if (bad != null) {
+                  setState(() { error = bad; sugg = null; warned = null; });
+                  return;
+                }
                 final err = conflict(t, widget.all);
-                if (err != null) {
-                  setState(() { error = 'مرفوض: $err'; sugg = suggestOffset(t, widget.all); });
+                if (err != null && err != warned) {
+                  setState(() {
+                    error = 'تنبيه تعارض: $err\nاضغط "حفظ رغم التعارض" للموافقة، أو عدّل الوقت، أو ألغِ.';
+                    sugg = suggestOffset(t, widget.all);
+                    warned = err;
+                  });
                 } else {
                   Navigator.pop(context, t);
                 }
               },
-              child: const Text('حفظ')),
+              child: Text(warned != null ? 'حفظ رغم التعارض' : 'حفظ')),
         ],
       );
 }

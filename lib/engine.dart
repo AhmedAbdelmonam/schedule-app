@@ -64,10 +64,15 @@ DateTime _day(int i) {
   return DateTime(n.year, n.month, n.day + i);
 }
 
-String? conflict(Task t, List<Task> all) {
+String? invalid(Task t) {
   if (t.name.trim().isEmpty) return 'اكتب اسم المهمة';
   if (t.days.isEmpty) return 'اختر يومًا واحدًا على الأقل';
   if (t.dur <= 0) return 'المدة يجب أن تكون أكبر من صفر';
+  return null;
+}
+
+/// Overlap check. Only a warning: the user may still choose to save.
+String? conflict(Task t, List<Task> all) {
   final others = all.where((x) => x.id != t.id).toList();
   for (var i = 0; i < 14; i++) {
     final d = _day(i);
